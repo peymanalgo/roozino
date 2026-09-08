@@ -133,6 +133,38 @@ class _TodayPageState extends State<TodayPage> {
     }
   }
 
+  String _recurrenceText(TaskRecurrence recurrence) {
+    switch (recurrence) {
+      case TaskRecurrence.none:
+        return 'بدون تکرار';
+
+      case TaskRecurrence.daily:
+        return 'هر روز';
+
+      case TaskRecurrence.weekly:
+        return 'هر هفته';
+
+      case TaskRecurrence.monthly:
+        return 'هر ماه';
+    }
+  }
+
+  IconData _recurrenceIcon(TaskRecurrence recurrence) {
+    switch (recurrence) {
+      case TaskRecurrence.none:
+        return Icons.block_outlined;
+
+      case TaskRecurrence.daily:
+        return Icons.today_outlined;
+
+      case TaskRecurrence.weekly:
+        return Icons.view_week_outlined;
+
+      case TaskRecurrence.monthly:
+        return Icons.calendar_month_outlined;
+    }
+  }
+
   String _dateStatusText(Task task) {
     if (_isOverdue(task)) {
       return 'عقب‌افتاده';
@@ -396,6 +428,22 @@ class _TodayPageState extends State<TodayPage> {
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodySmall,
+                                  ),
+                                ],
+                                if (task.recurrence != TaskRecurrence.none) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        _recurrenceIcon(task.recurrence),
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'تکرار: ${_recurrenceText(task.recurrence)}',
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ],

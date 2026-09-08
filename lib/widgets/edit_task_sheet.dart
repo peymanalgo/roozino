@@ -183,6 +183,7 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
         priority: _priority,
         dueDate: _dueDate,
         recurrence: _recurrence,
+        nextOccurrenceCreated: widget.task.nextOccurrenceCreated,
         createdAt: widget.task.createdAt,
       );
 
