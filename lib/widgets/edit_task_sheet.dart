@@ -3,21 +3,36 @@ import 'package:flutter/material.dart';
 import '../data/models/task.dart';
 import '../data/repositories/task_repository.dart';
 
-class AddTaskSheet extends StatefulWidget {
+class EditTaskSheet extends StatefulWidget {
+  final Task task;
   final TaskRepository repository;
 
-  const AddTaskSheet({super.key, required this.repository});
+  const EditTaskSheet({
+    super.key,
+    required this.task,
+    required this.repository,
+  });
 
   @override
-  State<AddTaskSheet> createState() => _AddTaskSheetState();
+  State<EditTaskSheet> createState() => _EditTaskSheetState();
 }
 
-class _AddTaskSheetState extends State<AddTaskSheet> {
-  final TextEditingController _titleController = TextEditingController();
+class _EditTaskSheetState extends State<EditTaskSheet> {
+  late final TextEditingController _titleController;
 
-  TaskPriority _priority = TaskPriority.normal;
+  late TaskPriority _priority;
   DateTime? _dueDate;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _titleController = TextEditingController(text: widget.task.title);
+
+    _priority = widget.task.priority;
+    _dueDate = widget.task.dueDate;
+  }
 
   @override
   void dispose() {
@@ -78,14 +93,17 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
     });
 
     try {
-      final task = Task(
+      final updatedTask = Task(
+        id: widget.task.id,
         title: title,
+        description: widget.task.description,
+        isCompleted: widget.task.isCompleted,
         priority: _priority,
         dueDate: _dueDate,
-        createdAt: DateTime.now(),
+        createdAt: widget.task.createdAt,
       );
 
-      await widget.repository.createTask(task);
+      await widget.repository.updateTask(updatedTask);
 
       if (!mounted) {
         return;
@@ -102,7 +120,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ذخیره کار انجام نشد. دوباره تلاش کن.')),
+        const SnackBar(content: Text('ویرایش کار انجام نشد. دوباره تلاش کن.')),
       );
     }
   }
@@ -123,16 +141,13 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('افزودن کار', style: Theme.of(context).textTheme.titleLarge),
+              Text('ویرایش کار', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 16),
               TextField(
                 controller: _titleController,
                 autofocus: true,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _saveTask(),
                 decoration: const InputDecoration(
                   labelText: 'عنوان کار',
-                  hintText: 'مثلاً خرید نان',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -166,10 +181,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
               ),
               if (_dueDate != null) ...[
                 const SizedBox(height: 10),
-                Text(
-                  'تاریخ انتخاب‌شده: ${_formatDate(_dueDate!)}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
+                Text('تاریخ انتخاب‌شده: ${_formatDate(_dueDate!)}'),
               ],
               const SizedBox(height: 20),
               Text('اولویت', style: Theme.of(context).textTheme.titleMedium),
@@ -216,7 +228,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('افزودن'),
+                    : const Text('ذخیره تغییرات'),
               ),
             ],
           ),

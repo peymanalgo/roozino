@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../data/database/app_database.dart';
 import '../features/dashboard/main_screen.dart';
 
 class RoozinoApp extends StatelessWidget {
-  const RoozinoApp({super.key});
+  final AppDatabase? database;
+
+  const RoozinoApp({super.key, this.database});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +29,7 @@ class RoozinoApp extends StatelessWidget {
       builder: (context, child) {
         return Directionality(textDirection: TextDirection.rtl, child: child!);
       },
-      home: const MainScreen(),
+      home: MainScreen(database: database),
     );
   }
 }

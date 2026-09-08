@@ -1,15 +1,18 @@
-import '../tasks/tasks_page.dart';
-import 'today_page.dart';
-
 import 'package:flutter/material.dart';
 
+import '../../data/database/app_database.dart';
+import '../../data/repositories/drift_task_repository.dart';
+import '../../widgets/add_task_sheet.dart';
 import '../calendar/calendar_page.dart';
 import '../focus/focus_page.dart';
 import '../settings/more_page.dart';
-import '../../widgets/add_task_sheet.dart';
+import '../tasks/tasks_page.dart';
+import 'today_page.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final AppDatabase? database;
+
+  const MainScreen({super.key, this.database});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -17,26 +20,61 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int selectedIndex = 0;
+  int _taskRefreshVersion = 0;
 
-  final List<Widget> pages = const [
-    TodayPage(),
-    TasksPage(),
-    CalendarPage(),
-    FocusPage(),
-    MorePage(),
-  ];
+  late final AppDatabase _database;
+  late final DriftTaskRepository _taskRepository;
 
-  void openAddTask() {
-    showModalBottomSheet(
+  @override
+  void initState() {
+    super.initState();
+
+    _database = widget.database ?? AppDatabase();
+    _taskRepository = DriftTaskRepository(_database);
+  }
+
+  @override
+  void dispose() {
+    if (widget.database == null) {
+      _database.close();
+    }
+
+    super.dispose();
+  }
+
+  Future<void> openAddTask() async {
+    final wasCreated = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => const AddTaskSheet(),
+      builder: (_) {
+        return AddTaskSheet(repository: _taskRepository);
+      },
     );
+
+    if (wasCreated == true && mounted) {
+      setState(() {
+        _taskRefreshVersion++;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final pages = <Widget>[
+      TodayPage(
+        repository: _taskRepository,
+        refreshVersion: _taskRefreshVersion,
+      ),
+      TasksPage(
+        repository: _taskRepository,
+        refreshVersion: _taskRefreshVersion,
+      ),
+      const CalendarPage(),
+      const FocusPage(),
+      const MorePage(),
+    ];
+
     return Scaffold(
       body: SafeArea(
         child: IndexedStack(index: selectedIndex, children: pages),

@@ -39,10 +39,7 @@ void main() {
 
   test('updates a task', () async {
     final id = await repository.createTask(
-      model.Task(
-        title: 'کار اولیه',
-        createdAt: DateTime(2026, 9, 8),
-      ),
+      model.Task(title: 'کار اولیه', createdAt: DateTime(2026, 9, 8)),
     );
 
     final existingTask = await repository.getTaskById(id);
@@ -62,10 +59,7 @@ void main() {
 
   test('marks a task as completed', () async {
     final id = await repository.createTask(
-      model.Task(
-        title: 'تماس با مشتری',
-        createdAt: DateTime(2026, 9, 8),
-      ),
+      model.Task(title: 'تماس با مشتری', createdAt: DateTime(2026, 9, 8)),
     );
 
     await repository.setTaskCompleted(id, true);
@@ -77,10 +71,7 @@ void main() {
 
   test('deletes a task', () async {
     final id = await repository.createTask(
-      model.Task(
-        title: 'کار قابل حذف',
-        createdAt: DateTime(2026, 9, 8),
-      ),
+      model.Task(title: 'کار قابل حذف', createdAt: DateTime(2026, 9, 8)),
     );
 
     await repository.deleteTask(id);
@@ -92,17 +83,11 @@ void main() {
 
   test('returns all tasks', () async {
     await repository.createTask(
-      model.Task(
-        title: 'کار اول',
-        createdAt: DateTime(2026, 9, 8, 8),
-      ),
+      model.Task(title: 'کار اول', createdAt: DateTime(2026, 9, 8, 8)),
     );
 
     await repository.createTask(
-      model.Task(
-        title: 'کار دوم',
-        createdAt: DateTime(2026, 9, 8, 9),
-      ),
+      model.Task(title: 'کار دوم', createdAt: DateTime(2026, 9, 8, 9)),
     );
 
     final tasks = await repository.getAllTasks();
