@@ -25,6 +25,8 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
   final TextEditingController _descriptionController = TextEditingController();
 
   TaskPriority _priority = TaskPriority.normal;
+  TaskRecurrence _recurrence = TaskRecurrence.none;
+
   DateTime? _dueDate;
 
   bool _isSaving = false;
@@ -40,6 +42,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+
     super.dispose();
   }
 
@@ -79,6 +82,22 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
   void _clearDate() {
     setState(() {
       _dueDate = null;
+
+      if (_recurrence != TaskRecurrence.none) {
+        _recurrence = TaskRecurrence.none;
+      }
+    });
+  }
+
+  void _setRecurrence(TaskRecurrence recurrence) {
+    setState(() {
+      _recurrence = recurrence;
+
+      if (recurrence != TaskRecurrence.none && _dueDate == null) {
+        final now = DateTime.now();
+
+        _dueDate = DateTime(now.year, now.month, now.day);
+      }
     });
   }
 
@@ -95,12 +114,45 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
     }
   }
 
+  String _recurrenceText(TaskRecurrence recurrence) {
+    switch (recurrence) {
+      case TaskRecurrence.none:
+        return 'بدون تکرار';
+
+      case TaskRecurrence.daily:
+        return 'هر روز';
+
+      case TaskRecurrence.weekly:
+        return 'هر هفته';
+
+      case TaskRecurrence.monthly:
+        return 'هر ماه';
+    }
+  }
+
+  IconData _recurrenceIcon(TaskRecurrence recurrence) {
+    switch (recurrence) {
+      case TaskRecurrence.none:
+        return Icons.block_outlined;
+
+      case TaskRecurrence.daily:
+        return Icons.today_outlined;
+
+      case TaskRecurrence.weekly:
+        return Icons.view_week_outlined;
+
+      case TaskRecurrence.monthly:
+        return Icons.calendar_month_outlined;
+    }
+  }
+
   Future<void> _saveTask() async {
     if (_isSaving) {
       return;
     }
 
     final title = _titleController.text.trim();
+
     final description = _descriptionController.text.trim();
 
     if (title.isEmpty) {
@@ -120,6 +172,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
         description: description.isEmpty ? null : description,
         priority: _priority,
         dueDate: _dueDate,
+        recurrence: _recurrence,
         createdAt: DateTime.now(),
       );
 
@@ -232,7 +285,65 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
+            Text(
+              'تکرار',
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'برای کارهای منظم مثل ورزش، مطالعه یا پرداخت قبض',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: TaskRecurrence.values.map((recurrence) {
+                return ChoiceChip(
+                  avatar: Icon(_recurrenceIcon(recurrence), size: 17),
+                  label: Text(_recurrenceText(recurrence)),
+                  selected: _recurrence == recurrence,
+                  onSelected: (_) {
+                    _setRecurrence(recurrence);
+                  },
+                );
+              }).toList(),
+            ),
+            if (_recurrence != TaskRecurrence.none) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.repeat,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'این کار ${_recurrenceText(_recurrence)} تکرار می‌شود و از ${formatPersianDate(_dueDate)} شروع خواهد شد.',
+                        style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 22),
             Text(
               'اولویت',
               style: Theme.of(context).textTheme.titleMedium

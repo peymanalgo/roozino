@@ -79,6 +79,33 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _recurrenceMeta = const VerificationMeta(
+    'recurrence',
+  );
+  @override
+  late final GeneratedColumn<String> recurrence = GeneratedColumn<String>(
+    'recurrence',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('none'),
+  );
+  static const VerificationMeta _nextOccurrenceCreatedMeta =
+      const VerificationMeta('nextOccurrenceCreated');
+  @override
+  late final GeneratedColumn<bool> nextOccurrenceCreated =
+      GeneratedColumn<bool>(
+        'next_occurrence_created',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("next_occurrence_created" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -98,6 +125,8 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     isCompleted,
     priority,
     dueDate,
+    recurrence,
+    nextOccurrenceCreated,
     createdAt,
   ];
   @override
@@ -153,6 +182,21 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
       );
     }
+    if (data.containsKey('recurrence')) {
+      context.handle(
+        _recurrenceMeta,
+        recurrence.isAcceptableOrUnknown(data['recurrence']!, _recurrenceMeta),
+      );
+    }
+    if (data.containsKey('next_occurrence_created')) {
+      context.handle(
+        _nextOccurrenceCreatedMeta,
+        nextOccurrenceCreated.isAcceptableOrUnknown(
+          data['next_occurrence_created']!,
+          _nextOccurrenceCreatedMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -194,6 +238,14 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}due_date'],
       ),
+      recurrence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence'],
+      )!,
+      nextOccurrenceCreated: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}next_occurrence_created'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -214,6 +266,8 @@ class Task extends DataClass implements Insertable<Task> {
   final bool isCompleted;
   final String priority;
   final DateTime? dueDate;
+  final String recurrence;
+  final bool nextOccurrenceCreated;
   final DateTime createdAt;
   const Task({
     required this.id,
@@ -222,6 +276,8 @@ class Task extends DataClass implements Insertable<Task> {
     required this.isCompleted,
     required this.priority,
     this.dueDate,
+    required this.recurrence,
+    required this.nextOccurrenceCreated,
     required this.createdAt,
   });
   @override
@@ -237,6 +293,8 @@ class Task extends DataClass implements Insertable<Task> {
     if (!nullToAbsent || dueDate != null) {
       map['due_date'] = Variable<DateTime>(dueDate);
     }
+    map['recurrence'] = Variable<String>(recurrence);
+    map['next_occurrence_created'] = Variable<bool>(nextOccurrenceCreated);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -253,6 +311,8 @@ class Task extends DataClass implements Insertable<Task> {
       dueDate: dueDate == null && nullToAbsent
           ? const Value.absent()
           : Value(dueDate),
+      recurrence: Value(recurrence),
+      nextOccurrenceCreated: Value(nextOccurrenceCreated),
       createdAt: Value(createdAt),
     );
   }
@@ -269,6 +329,10 @@ class Task extends DataClass implements Insertable<Task> {
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       priority: serializer.fromJson<String>(json['priority']),
       dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
+      recurrence: serializer.fromJson<String>(json['recurrence']),
+      nextOccurrenceCreated: serializer.fromJson<bool>(
+        json['nextOccurrenceCreated'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -282,6 +346,8 @@ class Task extends DataClass implements Insertable<Task> {
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'priority': serializer.toJson<String>(priority),
       'dueDate': serializer.toJson<DateTime?>(dueDate),
+      'recurrence': serializer.toJson<String>(recurrence),
+      'nextOccurrenceCreated': serializer.toJson<bool>(nextOccurrenceCreated),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -293,6 +359,8 @@ class Task extends DataClass implements Insertable<Task> {
     bool? isCompleted,
     String? priority,
     Value<DateTime?> dueDate = const Value.absent(),
+    String? recurrence,
+    bool? nextOccurrenceCreated,
     DateTime? createdAt,
   }) => Task(
     id: id ?? this.id,
@@ -301,6 +369,8 @@ class Task extends DataClass implements Insertable<Task> {
     isCompleted: isCompleted ?? this.isCompleted,
     priority: priority ?? this.priority,
     dueDate: dueDate.present ? dueDate.value : this.dueDate,
+    recurrence: recurrence ?? this.recurrence,
+    nextOccurrenceCreated: nextOccurrenceCreated ?? this.nextOccurrenceCreated,
     createdAt: createdAt ?? this.createdAt,
   );
   Task copyWithCompanion(TasksCompanion data) {
@@ -315,6 +385,12 @@ class Task extends DataClass implements Insertable<Task> {
           : this.isCompleted,
       priority: data.priority.present ? data.priority.value : this.priority,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      recurrence: data.recurrence.present
+          ? data.recurrence.value
+          : this.recurrence,
+      nextOccurrenceCreated: data.nextOccurrenceCreated.present
+          ? data.nextOccurrenceCreated.value
+          : this.nextOccurrenceCreated,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -328,6 +404,8 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('isCompleted: $isCompleted, ')
           ..write('priority: $priority, ')
           ..write('dueDate: $dueDate, ')
+          ..write('recurrence: $recurrence, ')
+          ..write('nextOccurrenceCreated: $nextOccurrenceCreated, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -341,6 +419,8 @@ class Task extends DataClass implements Insertable<Task> {
     isCompleted,
     priority,
     dueDate,
+    recurrence,
+    nextOccurrenceCreated,
     createdAt,
   );
   @override
@@ -353,6 +433,8 @@ class Task extends DataClass implements Insertable<Task> {
           other.isCompleted == this.isCompleted &&
           other.priority == this.priority &&
           other.dueDate == this.dueDate &&
+          other.recurrence == this.recurrence &&
+          other.nextOccurrenceCreated == this.nextOccurrenceCreated &&
           other.createdAt == this.createdAt);
 }
 
@@ -363,6 +445,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<bool> isCompleted;
   final Value<String> priority;
   final Value<DateTime?> dueDate;
+  final Value<String> recurrence;
+  final Value<bool> nextOccurrenceCreated;
   final Value<DateTime> createdAt;
   const TasksCompanion({
     this.id = const Value.absent(),
@@ -371,6 +455,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.isCompleted = const Value.absent(),
     this.priority = const Value.absent(),
     this.dueDate = const Value.absent(),
+    this.recurrence = const Value.absent(),
+    this.nextOccurrenceCreated = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TasksCompanion.insert({
@@ -380,6 +466,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.isCompleted = const Value.absent(),
     this.priority = const Value.absent(),
     this.dueDate = const Value.absent(),
+    this.recurrence = const Value.absent(),
+    this.nextOccurrenceCreated = const Value.absent(),
     required DateTime createdAt,
   }) : title = Value(title),
        createdAt = Value(createdAt);
@@ -390,6 +478,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<bool>? isCompleted,
     Expression<String>? priority,
     Expression<DateTime>? dueDate,
+    Expression<String>? recurrence,
+    Expression<bool>? nextOccurrenceCreated,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -399,6 +489,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (isCompleted != null) 'is_completed': isCompleted,
       if (priority != null) 'priority': priority,
       if (dueDate != null) 'due_date': dueDate,
+      if (recurrence != null) 'recurrence': recurrence,
+      if (nextOccurrenceCreated != null)
+        'next_occurrence_created': nextOccurrenceCreated,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -410,6 +503,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<bool>? isCompleted,
     Value<String>? priority,
     Value<DateTime?>? dueDate,
+    Value<String>? recurrence,
+    Value<bool>? nextOccurrenceCreated,
     Value<DateTime>? createdAt,
   }) {
     return TasksCompanion(
@@ -419,6 +514,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
       isCompleted: isCompleted ?? this.isCompleted,
       priority: priority ?? this.priority,
       dueDate: dueDate ?? this.dueDate,
+      recurrence: recurrence ?? this.recurrence,
+      nextOccurrenceCreated:
+          nextOccurrenceCreated ?? this.nextOccurrenceCreated,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -444,6 +542,14 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (dueDate.present) {
       map['due_date'] = Variable<DateTime>(dueDate.value);
     }
+    if (recurrence.present) {
+      map['recurrence'] = Variable<String>(recurrence.value);
+    }
+    if (nextOccurrenceCreated.present) {
+      map['next_occurrence_created'] = Variable<bool>(
+        nextOccurrenceCreated.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -459,6 +565,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('isCompleted: $isCompleted, ')
           ..write('priority: $priority, ')
           ..write('dueDate: $dueDate, ')
+          ..write('recurrence: $recurrence, ')
+          ..write('nextOccurrenceCreated: $nextOccurrenceCreated, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -483,6 +591,8 @@ typedef $$TasksTableCreateCompanionBuilder = TasksCompanion Function({
   Value<bool> isCompleted,
   Value<String> priority,
   Value<DateTime?> dueDate,
+  Value<String> recurrence,
+  Value<bool> nextOccurrenceCreated,
   required DateTime createdAt,
 });
 typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
@@ -492,6 +602,8 @@ typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
   Value<bool> isCompleted,
   Value<String> priority,
   Value<DateTime?> dueDate,
+  Value<String> recurrence,
+  Value<bool> nextOccurrenceCreated,
   Value<DateTime> createdAt,
 });
 
@@ -530,6 +642,16 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<DateTime> get dueDate => $composableBuilder(
     column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get nextOccurrenceCreated => $composableBuilder(
+    column: $table.nextOccurrenceCreated,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -578,6 +700,16 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get nextOccurrenceCreated => $composableBuilder(
+    column: $table.nextOccurrenceCreated,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -614,6 +746,16 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get dueDate =>
       $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get nextOccurrenceCreated => $composableBuilder(
+    column: $table.nextOccurrenceCreated,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -653,6 +795,8 @@ class $$TasksTableTableManager
                 Value<bool> isCompleted = const Value.absent(),
                 Value<String> priority = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
+                Value<String> recurrence = const Value.absent(),
+                Value<bool> nextOccurrenceCreated = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TasksCompanion(
                 id: id,
@@ -661,6 +805,8 @@ class $$TasksTableTableManager
                 isCompleted: isCompleted,
                 priority: priority,
                 dueDate: dueDate,
+                recurrence: recurrence,
+                nextOccurrenceCreated: nextOccurrenceCreated,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -671,6 +817,8 @@ class $$TasksTableTableManager
                 Value<bool> isCompleted = const Value.absent(),
                 Value<String> priority = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
+                Value<String> recurrence = const Value.absent(),
+                Value<bool> nextOccurrenceCreated = const Value.absent(),
                 required DateTime createdAt,
               }) => TasksCompanion.insert(
                 id: id,
@@ -679,6 +827,8 @@ class $$TasksTableTableManager
                 isCompleted: isCompleted,
                 priority: priority,
                 dueDate: dueDate,
+                recurrence: recurrence,
+                nextOccurrenceCreated: nextOccurrenceCreated,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

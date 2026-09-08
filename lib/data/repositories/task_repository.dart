@@ -12,4 +12,6 @@ abstract class TaskRepository {
   Future<void> deleteTask(int id);
 
   Future<void> setTaskCompleted(int id, bool isCompleted);
+
+  Future<void> setTaskCompletion(Task task, bool isCompleted);
 }

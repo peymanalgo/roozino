@@ -16,6 +16,11 @@ class Tasks extends Table {
 
   DateTimeColumn get dueDate => dateTime().nullable()();
 
+  TextColumn get recurrence => text().withDefault(const Constant('none'))();
+
+  BoolColumn get nextOccurrenceCreated =>
+      boolean().withDefault(const Constant(false))();
+
   DateTimeColumn get createdAt => dateTime()();
 }
 
@@ -25,5 +30,23 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'roozino'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (migrator) async {
+        await migrator.createAll();
+      },
+      onUpgrade: (migrator, from, to) async {
+        if (from < 2) {
+          await migrator.addColumn(tasks, tasks.recurrence);
+        }
+
+        if (from < 3) {
+          await migrator.addColumn(tasks, tasks.nextOccurrenceCreated);
+        }
+      },
+    );
+  }
 }

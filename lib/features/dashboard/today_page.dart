@@ -58,7 +58,7 @@ class _TodayPageState extends State<TodayPage> {
       return;
     }
 
-    await widget.repository.setTaskCompleted(id, isCompleted);
+    await widget.repository.setTaskCompletion(task, isCompleted);
 
     if (!mounted) {
       return;

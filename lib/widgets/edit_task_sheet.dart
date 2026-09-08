@@ -21,9 +21,12 @@ class EditTaskSheet extends StatefulWidget {
 
 class _EditTaskSheetState extends State<EditTaskSheet> {
   late final TextEditingController _titleController;
+
   late final TextEditingController _descriptionController;
 
   late TaskPriority _priority;
+  late TaskRecurrence _recurrence;
+
   DateTime? _dueDate;
 
   bool _isSaving = false;
@@ -39,6 +42,7 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
     );
 
     _priority = widget.task.priority;
+    _recurrence = widget.task.recurrence;
     _dueDate = widget.task.dueDate;
   }
 
@@ -46,6 +50,7 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+
     super.dispose();
   }
 
@@ -85,6 +90,22 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
   void _clearDate() {
     setState(() {
       _dueDate = null;
+
+      if (_recurrence != TaskRecurrence.none) {
+        _recurrence = TaskRecurrence.none;
+      }
+    });
+  }
+
+  void _setRecurrence(TaskRecurrence recurrence) {
+    setState(() {
+      _recurrence = recurrence;
+
+      if (recurrence != TaskRecurrence.none && _dueDate == null) {
+        final now = DateTime.now();
+
+        _dueDate = DateTime(now.year, now.month, now.day);
+      }
     });
   }
 
@@ -101,12 +122,45 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
     }
   }
 
-  Future<void> _saveChanges() async {
+  String _recurrenceText(TaskRecurrence recurrence) {
+    switch (recurrence) {
+      case TaskRecurrence.none:
+        return 'بدون تکرار';
+
+      case TaskRecurrence.daily:
+        return 'هر روز';
+
+      case TaskRecurrence.weekly:
+        return 'هر هفته';
+
+      case TaskRecurrence.monthly:
+        return 'هر ماه';
+    }
+  }
+
+  IconData _recurrenceIcon(TaskRecurrence recurrence) {
+    switch (recurrence) {
+      case TaskRecurrence.none:
+        return Icons.block_outlined;
+
+      case TaskRecurrence.daily:
+        return Icons.today_outlined;
+
+      case TaskRecurrence.weekly:
+        return Icons.view_week_outlined;
+
+      case TaskRecurrence.monthly:
+        return Icons.calendar_month_outlined;
+    }
+  }
+
+  Future<void> _saveTask() async {
     if (_isSaving) {
       return;
     }
 
     final title = _titleController.text.trim();
+
     final description = _descriptionController.text.trim();
 
     if (title.isEmpty) {
@@ -128,6 +182,7 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
         isCompleted: widget.task.isCompleted,
         priority: _priority,
         dueDate: _dueDate,
+        recurrence: _recurrence,
         createdAt: widget.task.createdAt,
       );
 
@@ -147,9 +202,8 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
         _isSaving = false;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ذخیره تغییرات انجام نشد')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('ویرایش کار انجام نشد')));
     }
   }
 
@@ -175,6 +229,7 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
             const SizedBox(height: 20),
             TextField(
               controller: _titleController,
+              autofocus: true,
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: 'عنوان کار',
@@ -238,7 +293,65 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
+            Text(
+              'تکرار',
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'الگوی تکرار این کار را انتخاب کن',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: TaskRecurrence.values.map((recurrence) {
+                return ChoiceChip(
+                  avatar: Icon(_recurrenceIcon(recurrence), size: 17),
+                  label: Text(_recurrenceText(recurrence)),
+                  selected: _recurrence == recurrence,
+                  onSelected: (_) {
+                    _setRecurrence(recurrence);
+                  },
+                );
+              }).toList(),
+            ),
+            if (_recurrence != TaskRecurrence.none) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.repeat,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'این کار ${_recurrenceText(_recurrence)} تکرار می‌شود و از ${formatPersianDate(_dueDate)} شروع خواهد شد.',
+                        style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 22),
             Text(
               'اولویت',
               style: Theme.of(context).textTheme.titleMedium
@@ -264,7 +377,7 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _isSaving ? null : _saveChanges,
+                onPressed: _isSaving ? null : _saveTask,
                 icon: _isSaving
                     ? const SizedBox(
                         width: 18,

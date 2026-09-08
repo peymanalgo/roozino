@@ -177,7 +177,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
 
-    await widget.repository.setTaskCompleted(id, isCompleted);
+    await widget.repository.setTaskCompletion(task, isCompleted);
 
     if (!mounted) {
       return;

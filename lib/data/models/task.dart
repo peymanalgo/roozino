@@ -1,5 +1,7 @@
 enum TaskPriority { normal, medium, high }
 
+enum TaskRecurrence { none, daily, weekly, monthly }
+
 class Task {
   final int? id;
   final String title;
@@ -7,6 +9,8 @@ class Task {
   final bool isCompleted;
   final TaskPriority priority;
   final DateTime? dueDate;
+  final TaskRecurrence recurrence;
+  final bool nextOccurrenceCreated;
   final DateTime createdAt;
 
   const Task({
@@ -16,6 +20,8 @@ class Task {
     this.isCompleted = false,
     this.priority = TaskPriority.normal,
     this.dueDate,
+    this.recurrence = TaskRecurrence.none,
+    this.nextOccurrenceCreated = false,
     required this.createdAt,
   });
 
@@ -26,6 +32,8 @@ class Task {
     bool? isCompleted,
     TaskPriority? priority,
     DateTime? dueDate,
+    TaskRecurrence? recurrence,
+    bool? nextOccurrenceCreated,
     DateTime? createdAt,
   }) {
     return Task(
@@ -35,6 +43,9 @@ class Task {
       isCompleted: isCompleted ?? this.isCompleted,
       priority: priority ?? this.priority,
       dueDate: dueDate ?? this.dueDate,
+      recurrence: recurrence ?? this.recurrence,
+      nextOccurrenceCreated:
+          nextOccurrenceCreated ?? this.nextOccurrenceCreated,
       createdAt: createdAt ?? this.createdAt,
     );
   }
