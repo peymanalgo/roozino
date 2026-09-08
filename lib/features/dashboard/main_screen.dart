@@ -4,7 +4,6 @@ import '../../data/database/app_database.dart';
 import '../../data/repositories/drift_task_repository.dart';
 import '../../widgets/add_task_sheet.dart';
 import '../calendar/calendar_page.dart';
-import '../focus/focus_page.dart';
 import '../settings/more_page.dart';
 import '../tasks/tasks_page.dart';
 import 'today_page.dart';
@@ -30,7 +29,6 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
 
     _database = widget.database ?? AppDatabase();
-
     _taskRepository = DriftTaskRepository(_database);
   }
 
@@ -82,7 +80,6 @@ class _MainScreenState extends State<MainScreen> {
         refreshVersion: _taskRefreshVersion,
         onTasksChanged: _notifyTasksChanged,
       ),
-      const FocusPage(),
       const MorePage(),
     ];
 
@@ -90,11 +87,12 @@ class _MainScreenState extends State<MainScreen> {
       body: SafeArea(
         child: IndexedStack(index: selectedIndex, children: pages),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: openAddTask,
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('کار جدید'),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) {
@@ -105,25 +103,24 @@ class _MainScreenState extends State<MainScreen> {
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.today_outlined),
-            selectedIcon: Icon(Icons.today),
+            selectedIcon: Icon(Icons.today_rounded),
             label: 'امروز',
           ),
           NavigationDestination(
             icon: Icon(Icons.checklist_outlined),
-            selectedIcon: Icon(Icons.checklist),
+            selectedIcon: Icon(Icons.checklist_rounded),
             label: 'کارها',
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
+            selectedIcon: Icon(Icons.calendar_month_rounded),
             label: 'تقویم',
           ),
           NavigationDestination(
-            icon: Icon(Icons.timer_outlined),
-            selectedIcon: Icon(Icons.timer),
-            label: 'تمرکز',
+            icon: Icon(Icons.more_horiz_rounded),
+            selectedIcon: Icon(Icons.more_rounded),
+            label: 'بیشتر',
           ),
-          NavigationDestination(icon: Icon(Icons.more_horiz), label: 'بیشتر'),
         ],
       ),
     );
