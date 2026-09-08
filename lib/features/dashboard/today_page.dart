@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../data/models/task.dart';
+
 class TodayPage extends StatelessWidget {
   const TodayPage({super.key});
 
@@ -122,8 +124,6 @@ class SectionTitle extends StatelessWidget {
     );
   }
 }
-
-enum TaskPriority { normal, medium, high }
 
 class TaskCard extends StatefulWidget {
   final String title;
