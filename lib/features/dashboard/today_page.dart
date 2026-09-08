@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/helpers/persian_date.dart';
 import '../../core/helpers/task_sort.dart';
 import '../../data/models/task.dart';
 import '../../data/repositories/task_repository.dart';
@@ -78,6 +79,7 @@ class _TodayPageState extends State<TodayPage> {
     }
 
     final today = _dateOnly(DateTime.now());
+
     final taskDate = _dateOnly(dueDate);
 
     return taskDate == today;
@@ -91,6 +93,7 @@ class _TodayPageState extends State<TodayPage> {
     }
 
     final today = _dateOnly(DateTime.now());
+
     final taskDate = _dateOnly(dueDate);
 
     return taskDate.isBefore(today);
@@ -130,18 +133,6 @@ class _TodayPageState extends State<TodayPage> {
     }
   }
 
-  String _formatDueDate(DateTime? date) {
-    if (date == null) {
-      return 'بدون تاریخ';
-    }
-
-    final year = date.year.toString();
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    return '$year/$month/$day';
-  }
-
   String _dateStatusText(Task task) {
     if (_isOverdue(task)) {
       return 'عقب‌افتاده';
@@ -151,7 +142,7 @@ class _TodayPageState extends State<TodayPage> {
       return 'امروز';
     }
 
-    return _formatDueDate(task.dueDate);
+    return formatPersianDate(task.dueDate);
   }
 
   int _countOverdueTasks(List<Task> tasks) {
@@ -241,6 +232,7 @@ class _TodayPageState extends State<TodayPage> {
               }
 
               final allTasks = snapshot.data ?? [];
+
               final tasks = _prepareTodayTasks(allTasks);
 
               if (tasks.isEmpty) {
@@ -271,6 +263,7 @@ class _TodayPageState extends State<TodayPage> {
               }
 
               final overdueCount = _countOverdueTasks(tasks);
+
               final todayOpenCount = _countOpenTodayTasks(tasks);
 
               return SliverMainAxisGroup(
@@ -305,8 +298,11 @@ class _TodayPageState extends State<TodayPage> {
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final task = tasks[index];
+
                         final description = task.description?.trim();
+
                         final isOverdue = _isOverdue(task);
+
                         final isDueToday = _isDueToday(task);
 
                         return Card(
@@ -393,6 +389,15 @@ class _TodayPageState extends State<TodayPage> {
                                       ),
                                   ],
                                 ),
+                                if (task.dueDate != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    formatPersianDate(task.dueDate),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall,
+                                  ),
+                                ],
                               ],
                             ),
                             controlAffinity: ListTileControlAffinity.leading,

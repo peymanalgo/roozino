@@ -30,6 +30,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
 
     _database = widget.database ?? AppDatabase();
+
     _taskRepository = DriftTaskRepository(_database);
   }
 
@@ -76,7 +77,11 @@ class _MainScreenState extends State<MainScreen> {
         refreshVersion: _taskRefreshVersion,
         onTasksChanged: _notifyTasksChanged,
       ),
-      const CalendarPage(),
+      CalendarPage(
+        repository: _taskRepository,
+        refreshVersion: _taskRefreshVersion,
+        onTasksChanged: _notifyTasksChanged,
+      ),
       const FocusPage(),
       const MorePage(),
     ];

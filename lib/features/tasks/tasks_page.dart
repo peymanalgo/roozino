@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/helpers/persian_date.dart';
 import '../../core/helpers/task_sort.dart';
 import '../../data/models/task.dart';
 import '../../data/repositories/task_repository.dart';
@@ -202,18 +203,6 @@ class _TasksPageState extends State<TasksPage> {
     }
   }
 
-  String _formatDueDate(DateTime? date) {
-    if (date == null) {
-      return 'بدون تاریخ';
-    }
-
-    final year = date.year.toString();
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    return '$year/$month/$day';
-  }
-
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -326,6 +315,7 @@ class _TasksPageState extends State<TasksPage> {
               }
 
               final allTasks = snapshot.data ?? [];
+
               final tasks = _applyFilter(allTasks);
 
               if (tasks.isEmpty) {
@@ -351,6 +341,7 @@ class _TasksPageState extends State<TasksPage> {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final task = tasks[index];
+
                     final description = task.description?.trim();
 
                     return Card(
@@ -415,7 +406,9 @@ class _TasksPageState extends State<TasksPage> {
                                   size: 16,
                                 ),
                                 const SizedBox(width: 4),
-                                Text(_formatDueDate(task.dueDate)),
+                                Expanded(
+                                  child: Text(formatPersianDate(task.dueDate)),
+                                ),
                               ],
                             ),
                           ],
