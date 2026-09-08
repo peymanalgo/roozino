@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/helpers/task_sort.dart';
 import '../../data/models/task.dart';
 import '../../data/repositories/task_repository.dart';
 import '../../widgets/edit_task_sheet.dart';
@@ -9,11 +10,13 @@ enum TaskFilter { all, today, important, completed }
 class TasksPage extends StatefulWidget {
   final TaskRepository repository;
   final int refreshVersion;
+  final VoidCallback onTasksChanged;
 
   const TasksPage({
     super.key,
     required this.repository,
     required this.refreshVersion,
+    required this.onTasksChanged,
   });
 
   @override
@@ -65,9 +68,7 @@ class _TasksPageState extends State<TasksPage> {
       return;
     }
 
-    setState(() {
-      _loadTasks();
-    });
+    widget.onTasksChanged();
   }
 
   Future<void> _editTask(Task task) async {
@@ -81,9 +82,7 @@ class _TasksPageState extends State<TasksPage> {
     );
 
     if (wasUpdated == true && mounted) {
-      setState(() {
-        _loadTasks();
-      });
+      widget.onTasksChanged();
     }
   }
 
@@ -128,23 +127,24 @@ class _TasksPageState extends State<TasksPage> {
       return;
     }
 
-    setState(() {
-      _loadTasks();
-    });
+    widget.onTasksChanged();
 
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('کار حذف شد')));
   }
 
   List<Task> _applyFilter(List<Task> tasks) {
+    List<Task> filteredTasks;
+
     switch (_selectedFilter) {
       case TaskFilter.all:
-        return tasks;
+        filteredTasks = tasks;
+        break;
 
       case TaskFilter.today:
         final now = DateTime.now();
 
-        return tasks.where((task) {
+        filteredTasks = tasks.where((task) {
           final dueDate = task.dueDate;
 
           if (dueDate == null) {
@@ -155,17 +155,22 @@ class _TasksPageState extends State<TasksPage> {
               dueDate.month == now.month &&
               dueDate.day == now.day;
         }).toList();
+        break;
 
       case TaskFilter.important:
-        return tasks
+        filteredTasks = tasks
             .where(
               (task) => task.priority == TaskPriority.high && !task.isCompleted,
             )
             .toList();
+        break;
 
       case TaskFilter.completed:
-        return tasks.where((task) => task.isCompleted).toList();
+        filteredTasks = tasks.where((task) => task.isCompleted).toList();
+        break;
     }
+
+    return sortTasksSmartly(filteredTasks);
   }
 
   String _emptyMessage() {
@@ -231,6 +236,17 @@ class _TasksPageState extends State<TasksPage> {
                   Text(
                     'همه کارهایت را یک‌جا مدیریت کن',
                     style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.auto_awesome, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'مرتب‌سازی هوشمند فعال است',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   SingleChildScrollView(
@@ -335,6 +351,7 @@ class _TasksPageState extends State<TasksPage> {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final task = tasks[index];
+                    final description = task.description?.trim();
 
                     return Card(
                       child: ListTile(
@@ -357,16 +374,41 @@ class _TasksPageState extends State<TasksPage> {
                             decoration: task.isCompleted
                                 ? TextDecoration.lineThrough
                                 : null,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 4),
-                            Text('اولویت: ${_priorityText(task.priority)}'),
+                            if (description != null &&
+                                description.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  decoration: task.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(
+                                  task.priority == TaskPriority.high
+                                      ? Icons.flag
+                                      : Icons.flag_outlined,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text('اولویت: ${_priorityText(task.priority)}'),
+                              ],
+                            ),
                             const SizedBox(height: 4),
                             Row(
-                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Icon(
                                   Icons.calendar_today_outlined,
@@ -379,6 +421,7 @@ class _TasksPageState extends State<TasksPage> {
                           ],
                         ),
                         trailing: PopupMenuButton<String>(
+                          tooltip: 'گزینه‌های کار',
                           onSelected: (value) {
                             if (value == 'edit') {
                               _editTask(task);

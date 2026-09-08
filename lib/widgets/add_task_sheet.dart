@@ -14,6 +14,7 @@ class AddTaskSheet extends StatefulWidget {
 
 class _AddTaskSheetState extends State<AddTaskSheet> {
   final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
   TaskPriority _priority = TaskPriority.normal;
   DateTime? _dueDate;
@@ -22,6 +23,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
   @override
   void dispose() {
     _titleController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -68,6 +70,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
 
   Future<void> _saveTask() async {
     final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
 
     if (title.isEmpty || _isSaving) {
       return;
@@ -80,6 +83,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
     try {
       final task = Task(
         title: title,
+        description: description.isEmpty ? null : description,
         priority: _priority,
         dueDate: _dueDate,
         createdAt: DateTime.now(),
@@ -128,11 +132,20 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
               TextField(
                 controller: _titleController,
                 autofocus: true,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _saveTask(),
                 decoration: const InputDecoration(
                   labelText: 'عنوان کار',
                   hintText: 'مثلاً خرید نان',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                minLines: 3,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'توضیحات',
+                  hintText: 'جزئیات این کار را بنویس...',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -166,10 +179,7 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
               ),
               if (_dueDate != null) ...[
                 const SizedBox(height: 10),
-                Text(
-                  'تاریخ انتخاب‌شده: ${_formatDate(_dueDate!)}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
+                Text('تاریخ انتخاب‌شده: ${_formatDate(_dueDate!)}'),
               ],
               const SizedBox(height: 20),
               Text('اولویت', style: Theme.of(context).textTheme.titleMedium),

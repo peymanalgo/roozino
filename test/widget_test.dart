@@ -21,10 +21,14 @@ void main() {
     expect(find.text('هنوز کاری ثبت نکرده‌ای'), findsOneWidget);
   });
 
-  testWidgets('user can add a task from the UI', (WidgetTester tester) async {
+  testWidgets('user can add a task for today from the UI', (
+    WidgetTester tester,
+  ) async {
     final database = AppDatabase(NativeDatabase.memory());
 
     addTearDown(database.close);
+
+    final repository = DriftTaskRepository(database);
 
     await tester.pumpWidget(RoozinoApp(database: database));
 
@@ -36,13 +40,52 @@ void main() {
 
     expect(find.text('افزودن کار'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'خرید شیر');
+    final titleField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.decoration?.labelText == 'عنوان کار',
+    );
+
+    final descriptionField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.decoration?.labelText == 'توضیحات',
+    );
+
+    expect(titleField, findsOneWidget);
+
+    expect(descriptionField, findsOneWidget);
+
+    await tester.enterText(titleField, 'خرید شیر');
+
+    await tester.enterText(descriptionField, 'دو بطری شیر کم‌چرب');
+
+    await tester.tap(find.widgetWithText(ActionChip, 'امروز'));
+
+    await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(FilledButton, 'افزودن'));
 
     await tester.pumpAndSettle();
 
     expect(find.text('خرید شیر'), findsOneWidget);
+
+    final tasks = await repository.getAllTasks();
+
+    expect(tasks.length, 1);
+
+    expect(tasks.first.title, 'خرید شیر');
+
+    expect(tasks.first.description, 'دو بطری شیر کم‌چرب');
+
+    expect(tasks.first.dueDate, isNotNull);
+
+    final now = DateTime.now();
+    final dueDate = tasks.first.dueDate!;
+
+    expect(dueDate.year, now.year);
+
+    expect(dueDate.month, now.month);
+
+    expect(dueDate.day, now.day);
   });
 
   testWidgets('user can edit a task from the UI', (WidgetTester tester) async {
@@ -55,6 +98,7 @@ void main() {
     await repository.createTask(
       model.Task(
         title: 'کار اولیه',
+        description: 'توضیح اولیه',
         priority: model.TaskPriority.normal,
         createdAt: DateTime(2026, 9, 8, 10),
       ),
@@ -76,7 +120,23 @@ void main() {
 
     expect(find.text('ویرایش کار'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'کار ویرایش‌شده');
+    final titleField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.decoration?.labelText == 'عنوان کار',
+    );
+
+    final descriptionField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.decoration?.labelText == 'توضیحات',
+    );
+
+    expect(titleField, findsOneWidget);
+
+    expect(descriptionField, findsOneWidget);
+
+    await tester.enterText(titleField, 'کار ویرایش‌شده');
+
+    await tester.enterText(descriptionField, 'توضیحات جدید');
 
     await tester.tap(find.widgetWithText(FilledButton, 'ذخیره تغییرات'));
 
@@ -91,6 +151,8 @@ void main() {
     expect(tasks.length, 1);
 
     expect(tasks.first.title, 'کار ویرایش‌شده');
+
+    expect(tasks.first.description, 'توضیحات جدید');
   });
 
   testWidgets('user can delete a task from the UI', (

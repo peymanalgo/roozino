@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../core/helpers/task_sort.dart';
 import '../../data/models/task.dart';
 import '../../data/repositories/task_repository.dart';
 
 class TodayPage extends StatefulWidget {
   final TaskRepository repository;
   final int refreshVersion;
+  final VoidCallback onTasksChanged;
 
   const TodayPage({
     super.key,
     required this.repository,
     required this.refreshVersion,
+    required this.onTasksChanged,
   });
 
   @override
@@ -60,17 +63,55 @@ class _TodayPageState extends State<TodayPage> {
       return;
     }
 
-    setState(() {
-      _loadTasks();
-    });
+    widget.onTasksChanged();
+  }
+
+  DateTime _dateOnly(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  bool _isDueToday(Task task) {
+    final dueDate = task.dueDate;
+
+    if (dueDate == null) {
+      return false;
+    }
+
+    final today = _dateOnly(DateTime.now());
+    final taskDate = _dateOnly(dueDate);
+
+    return taskDate == today;
+  }
+
+  bool _isOverdue(Task task) {
+    final dueDate = task.dueDate;
+
+    if (dueDate == null || task.isCompleted) {
+      return false;
+    }
+
+    final today = _dateOnly(DateTime.now());
+    final taskDate = _dateOnly(dueDate);
+
+    return taskDate.isBefore(today);
+  }
+
+  List<Task> _prepareTodayTasks(List<Task> tasks) {
+    final todayTasks = tasks.where((task) {
+      return _isDueToday(task) || _isOverdue(task);
+    }).toList();
+
+    return sortTasksSmartly(todayTasks);
   }
 
   String _priorityText(TaskPriority priority) {
     switch (priority) {
       case TaskPriority.normal:
         return 'عادی';
+
       case TaskPriority.medium:
         return 'متوسط';
+
       case TaskPriority.high:
         return 'مهم';
     }
@@ -80,8 +121,10 @@ class _TodayPageState extends State<TodayPage> {
     switch (priority) {
       case TaskPriority.normal:
         return Icons.flag_outlined;
+
       case TaskPriority.medium:
         return Icons.flag_outlined;
+
       case TaskPriority.high:
         return Icons.flag;
     }
@@ -97,6 +140,28 @@ class _TodayPageState extends State<TodayPage> {
     final day = date.day.toString().padLeft(2, '0');
 
     return '$year/$month/$day';
+  }
+
+  String _dateStatusText(Task task) {
+    if (_isOverdue(task)) {
+      return 'عقب‌افتاده';
+    }
+
+    if (_isDueToday(task)) {
+      return 'امروز';
+    }
+
+    return _formatDueDate(task.dueDate);
+  }
+
+  int _countOverdueTasks(List<Task> tasks) {
+    return tasks.where(_isOverdue).length;
+  }
+
+  int _countOpenTodayTasks(List<Task> tasks) {
+    return tasks.where((task) {
+      return _isDueToday(task) && !task.isCompleted;
+    }).length;
   }
 
   @override
@@ -124,9 +189,14 @@ class _TodayPageState extends State<TodayPage> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'کارهای من',
+                    'کارهای امروز',
                     style: Theme.of(context).textTheme.titleLarge
                         ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'کارهای امروز و کارهای عقب‌افتاده',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
               ),
@@ -170,7 +240,8 @@ class _TodayPageState extends State<TodayPage> {
                 );
               }
 
-              final tasks = snapshot.data ?? [];
+              final allTasks = snapshot.data ?? [];
+              final tasks = _prepareTodayTasks(allTasks);
 
               if (tasks.isEmpty) {
                 return const SliverFillRemaining(
@@ -189,7 +260,7 @@ class _TodayPageState extends State<TodayPage> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'برای افزودن اولین کار، دکمه + را بزن.',
+                            'برای امروز کاری نداری. با دکمه + یک کار برای امروز بساز.',
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -199,63 +270,138 @@ class _TodayPageState extends State<TodayPage> {
                 );
               }
 
-              return SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
-                sliver: SliverList.separated(
-                  itemCount: tasks.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final task = tasks[index];
+              final overdueCount = _countOverdueTasks(tasks);
+              final todayOpenCount = _countOpenTodayTasks(tasks);
 
-                    return Card(
-                      child: CheckboxListTile(
-                        value: task.isCompleted,
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-
-                          _toggleTask(task, value);
-                        },
-                        title: Text(
-                          task.title,
-                          style: TextStyle(
-                            decoration: task.isCompleted
-                                ? TextDecoration.lineThrough
-                                : null,
+              return SliverMainAxisGroup(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                    sliver: SliverToBoxAdapter(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Chip(
+                            avatar: const Icon(Icons.today_outlined, size: 18),
+                            label: Text('$todayOpenCount کار امروز'),
                           ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(_priorityIcon(task.priority), size: 16),
-                                const SizedBox(width: 4),
-                                Text(_priorityText(task.priority)),
-                              ],
+                          if (overdueCount > 0)
+                            Chip(
+                              avatar: const Icon(
+                                Icons.warning_amber_rounded,
+                                size: 18,
+                              ),
+                              label: Text('$overdueCount عقب‌افتاده'),
                             ),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(_formatDueDate(task.dueDate)),
-                              ],
-                            ),
-                          ],
-                        ),
-                        controlAffinity: ListTileControlAffinity.leading,
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                    sliver: SliverList.separated(
+                      itemCount: tasks.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final task = tasks[index];
+                        final description = task.description?.trim();
+                        final isOverdue = _isOverdue(task);
+                        final isDueToday = _isDueToday(task);
+
+                        return Card(
+                          child: CheckboxListTile(
+                            value: task.isCompleted,
+                            onChanged: (value) {
+                              if (value == null) {
+                                return;
+                              }
+
+                              _toggleTask(task, value);
+                            },
+                            title: Text(
+                              task.title,
+                              style: TextStyle(
+                                decoration: task.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (description != null &&
+                                    description.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    description,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      decoration: task.isCompleted
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _priorityIcon(task.priority),
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'اولویت: ${_priorityText(task.priority)}',
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 6,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.calendar_today_outlined,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(_dateStatusText(task)),
+                                      ],
+                                    ),
+                                    if (isOverdue)
+                                      const Chip(
+                                        visualDensity: VisualDensity.compact,
+                                        avatar: Icon(
+                                          Icons.warning_amber_rounded,
+                                          size: 16,
+                                        ),
+                                        label: Text('عقب‌افتاده'),
+                                      ),
+                                    if (isDueToday && !task.isCompleted)
+                                      const Chip(
+                                        visualDensity: VisualDensity.compact,
+                                        avatar: Icon(Icons.today, size: 16),
+                                        label: Text('برای امروز'),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               );
             },
           ),

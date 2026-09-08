@@ -42,6 +42,12 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
+  void _notifyTasksChanged() {
+    setState(() {
+      _taskRefreshVersion++;
+    });
+  }
+
   Future<void> openAddTask() async {
     final wasCreated = await showModalBottomSheet<bool>(
       context: context,
@@ -53,9 +59,7 @@ class _MainScreenState extends State<MainScreen> {
     );
 
     if (wasCreated == true && mounted) {
-      setState(() {
-        _taskRefreshVersion++;
-      });
+      _notifyTasksChanged();
     }
   }
 
@@ -65,10 +69,12 @@ class _MainScreenState extends State<MainScreen> {
       TodayPage(
         repository: _taskRepository,
         refreshVersion: _taskRefreshVersion,
+        onTasksChanged: _notifyTasksChanged,
       ),
       TasksPage(
         repository: _taskRepository,
         refreshVersion: _taskRefreshVersion,
+        onTasksChanged: _notifyTasksChanged,
       ),
       const CalendarPage(),
       const FocusPage(),

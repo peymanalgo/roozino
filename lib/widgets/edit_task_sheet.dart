@@ -19,6 +19,7 @@ class EditTaskSheet extends StatefulWidget {
 
 class _EditTaskSheetState extends State<EditTaskSheet> {
   late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
 
   late TaskPriority _priority;
   DateTime? _dueDate;
@@ -30,6 +31,10 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
 
     _titleController = TextEditingController(text: widget.task.title);
 
+    _descriptionController = TextEditingController(
+      text: widget.task.description ?? '',
+    );
+
     _priority = widget.task.priority;
     _dueDate = widget.task.dueDate;
   }
@@ -37,6 +42,7 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
   @override
   void dispose() {
     _titleController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -83,6 +89,7 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
 
   Future<void> _saveTask() async {
     final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
 
     if (title.isEmpty || _isSaving) {
       return;
@@ -96,7 +103,7 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
       final updatedTask = Task(
         id: widget.task.id,
         title: title,
-        description: widget.task.description,
+        description: description.isEmpty ? null : description,
         isCompleted: widget.task.isCompleted,
         priority: _priority,
         dueDate: _dueDate,
@@ -148,6 +155,17 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
                 autofocus: true,
                 decoration: const InputDecoration(
                   labelText: 'عنوان کار',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                minLines: 3,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'توضیحات',
+                  hintText: 'جزئیات این کار را بنویس...',
                   border: OutlineInputBorder(),
                 ),
               ),
